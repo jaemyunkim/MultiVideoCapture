@@ -17,6 +17,7 @@ enum class CamStatus {
 	CAM_STATUS_OPENING,
 	CAM_STATUS_OPENED,
 	CAM_STATUS_SETTING,
+	CAM_STATUS_UNKNOWN,
 };
 
 
@@ -26,6 +27,7 @@ public:
 	virtual ~VideoCaptureType();
 
 	virtual bool open(const std::string& filename);
+	virtual bool open(const std::string& filename, int apiPreference);
 	virtual bool open(int index);
 	virtual bool open(int index, int apiPreference);
 	virtual bool isOpened() const;

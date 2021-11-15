@@ -1,6 +1,8 @@
 #include "MultiVideoCapture.hpp"
 #include "VideoCaptureType.hpp"
 
+#include <numeric>
+
 #include <atomic>
 std::atomic_bool gKeepCamOpening;
 std::atomic_bool gCamSetChanged;	//TODO adding the function for online camera settings change.
@@ -21,10 +23,18 @@ void openCameras(std::vector<int> camIds, int apiPreference) {
 	do {
 		std::vector<std::future<bool> > futures;
 		for (int i = 0; i < nbDevs; i++) {
-			if (gVidCaps[i]->status() == CamStatus::CAM_STATUS_CLOSED) {
+			if (gVidCaps[i]->status() == CamStatus::CAM_STATUS_CLOSED
+				|| gVidCaps[i]->status() == CamStatus::CAM_STATUS_UNKNOWN) {
 				int id = camIds[i];
 				futures.emplace_back(pThread_pool->EnqueueJob(openfunc, gVidCaps[i], id, apiPreference));
 			}
+		}
+
+		// wait until all jobs are done.
+		bool status = false;
+		for (int i = 0; i < futures.size(); i++) {
+			futures[i].wait();
+			status = status || futures[i].get();
 		}
 
 		// keep trying to open each camera in every [waitFor] sec.
@@ -81,7 +91,7 @@ void MultiVideoCapture::open(int index, int apiPreference, bool retry) {
 
 void MultiVideoCapture::open(const std::vector<std::string>& filenames) {
 	this->resize(filenames.size());
-	mCameraIds.clear();
+	std::iota(mCameraIds.begin(), mCameraIds.end(), 0);
 
 	pThread_pool = new ThreadPool::ThreadPool(gVidCaps.size() * 2 + 4);
 
@@ -309,7 +319,7 @@ bool MultiVideoCapture::set(int propId, std::vector<double> values) {
 
 	bool res = false;
 	for (const auto& result : results) {
-		res = res | result;
+		res = res || result;
 	}
 
 	// if setting is failed then restore settings for all devices.
