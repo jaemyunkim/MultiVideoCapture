@@ -84,7 +84,11 @@ endif()
 # copy dlls
 install(FILES       $<$<CONFIG:Debug>:${__opencv_dll_dbg}>  # opencv dlls
                     $<$<NOT:$<CONFIG:Debug>>:${__opencv_dll_release}>   # opencv dlls
-                    $<$<CONFIG:Debug>:${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/install/MultiVideoCapture/MultiVideoCaptured.lib>
-                    $<$<NOT:$<CONFIG:Debug>>:${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/install/MultiVideoCapture/MultiVideoCapture.lib>
         DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJ_NAME}/
 )
+if(WIN32)
+	install(FILES		$<$<CONFIG:Debug>:${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/install/MultiVideoCapture/MultiVideoCaptured.lib>
+						$<$<NOT:$<CONFIG:Debug>>:${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/install/MultiVideoCapture/MultiVideoCapture.lib>
+			DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJ_NAME}/
+	)
+endif(WIN32)
