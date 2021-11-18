@@ -1,0 +1,1 @@
+add_subdirectory(MultiVideoCapture_test)
