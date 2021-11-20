@@ -98,6 +98,9 @@ bool VideoCaptureType::read(FrameType& frame) {
 		frame.setTimestamp(std::chrono::system_clock::now());
 		this->retrieve(frame);
 	}
+	else if (mStatus == CAM_STATUS_SETTING) {
+		frame.release();
+	}
 	else {
 		//release();
 		mStatus = CAM_STATUS_CLOSED;

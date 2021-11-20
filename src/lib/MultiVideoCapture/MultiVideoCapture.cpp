@@ -159,6 +159,8 @@ bool MultiVideoCapture::read(std::vector<FrameType>& frames) {
 		if (gVidCaps[i].status() == CAM_STATUS_OPENED) {
 			futures.emplace_back(pThread_pool->EnqueueJob(readfunc, &gVidCaps[i], std::ref(frames[i])));
 		}
+		else
+			frames[i].release();
 	}
 
 	// wait until all jobs are done.
