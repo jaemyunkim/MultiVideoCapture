@@ -41,6 +41,7 @@ public:
 protected:
 	int mCamId;
 	CamStatus mStatus;
+	bool mIsSet;
 	int mCloseCount;
 	int mCloseLimit;
 

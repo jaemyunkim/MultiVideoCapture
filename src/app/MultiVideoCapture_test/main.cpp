@@ -9,6 +9,7 @@
 int main() {
 	std::vector<int> camIds = { 0, 1 };
 	std::vector<FrameType> images(camIds.size());
+	//cv::Size resolution = { 1920, 1080 };
 	cv::Size resolution = { 1280, 720 };
 	//cv::Size resolution = { 800, 600 };
 	//cv::Size resolution = { 640, 480 };
@@ -17,7 +18,7 @@ int main() {
 
 	MultiVideoCapture mvc;
 	mvc.open(camIds, CV_CAP_DSHOW);
-	mvc.set(resolution, fps);
+	mvc.set(camIds, resolution, fps);
 
 	std::chrono::milliseconds duration(long(1000.f / fps));
 	std::chrono::system_clock::time_point wait_until;

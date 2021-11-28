@@ -1,8 +1,5 @@
 #include "VideoCaptureType.hpp"
 
-#include <condition_variable>
-std::condition_variable gCvCamOpen;
-
 #include <chrono>
 #include <thread>
 #include <mutex>
@@ -14,11 +11,11 @@ VideoCaptureType::VideoCaptureType() {
 	this->release();
 	mResolution = { 640, 480 };
 	mFps = 30.f;
+	mIsSet = false;
 }
 
 
 VideoCaptureType::~VideoCaptureType() {
-	gCvCamOpen.notify_all();
 	this->release();
 }
 
@@ -33,6 +30,11 @@ bool VideoCaptureType::open(int index, int apiPreference) {
 	if (mStatus == CAM_STATUS_OPENED) {
 		std::lock_guard<std::mutex> lock(gMtxPrintMsg);
 		std::cout << "camera " << index << " is already opened" << std::endl;
+		return false;
+	}
+	else if (mStatus == CAM_STATUS_SETTING) {
+		std::lock_guard<std::mutex> lock(gMtxPrintMsg);
+		std::cout << "camera " << index << " is already opened and is on setting" << std::endl;
 		return false;
 	}
 	else if (mStatus == CAM_STATUS_OPENING) {
@@ -53,7 +55,8 @@ bool VideoCaptureType::open(int index, int apiPreference) {
 
 	if (cam_status == true && cv::VideoCapture::grab() == true) {
 		mStatus = CAM_STATUS_OPENED;
-		gCvCamOpen.notify_one();
+		if (mIsSet)
+			this->set(mResolution, mFps);
 	}
 	else {
 		release();
@@ -66,7 +69,7 @@ bool VideoCaptureType::open(int index, int apiPreference) {
 
 
 bool VideoCaptureType::isOpened() const {
-	if (mStatus == CAM_STATUS_OPENED)
+	if (mStatus == CAM_STATUS_OPENED || mStatus == CAM_STATUS_SETTING)
 		return true;
 	else
 		return false;
@@ -79,7 +82,6 @@ CamStatus VideoCaptureType::status() const {
 
 
 void VideoCaptureType::release() {
-	//mCamId = -1;
 	mStatus = CAM_STATUS_CLOSED;
 
 	cv::VideoCapture::release();
@@ -119,6 +121,9 @@ VideoCaptureType& VideoCaptureType::operator >> (FrameType& frame) {
 
 
 bool VideoCaptureType::set(cv::Size resolution, float fps) {
+	mStatus = CAM_STATUS_SETTING;
+	mIsSet = true;
+
 	// get old settings
 	cv::Size oldSize((int)cv::VideoCapture::get(cv::CAP_PROP_FRAME_WIDTH), (int)cv::VideoCapture::get(cv::CAP_PROP_FRAME_HEIGHT));
 	double oldFps = cv::VideoCapture::get(cv::CAP_PROP_FPS);
@@ -126,11 +131,6 @@ bool VideoCaptureType::set(cv::Size resolution, float fps) {
 
 	if (resolution == oldSize && fps == oldFps)
 		return true;
-
-	std::unique_lock<std::mutex> lk(gMtxStatus);
-	gCvCamOpen.wait(lk, [&] { return this->status() == CAM_STATUS_OPENED; });
-
-	mStatus = CAM_STATUS_SETTING;
 
 	if (resolution == cv::Size(-1, -1))	resolution = mResolution;
 	else	mResolution = resolution;
@@ -155,7 +155,6 @@ bool VideoCaptureType::set(cv::Size resolution, float fps) {
 
 	if (statusSize && statusFps) {
 		mStatus = CAM_STATUS_OPENED;
-		lk.unlock();
 		return true;
 	}
 	else {
@@ -167,7 +166,6 @@ bool VideoCaptureType::set(cv::Size resolution, float fps) {
 		cv::VideoCapture::set(cv::CAP_PROP_FPS, oldFps);
 
 		mStatus = CAM_STATUS_OPENED;
-		lk.unlock();
 		return false;
 	}
 }

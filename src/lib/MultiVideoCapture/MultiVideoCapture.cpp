@@ -33,26 +33,6 @@ void openCameras(const std::atomic_bool& condition, std::vector<VideoCaptureType
 }
 
 
-void setCamera(const std::atomic_bool& openCondition, std::atomic_bool& setCondition, VideoCaptureType& vidCap, cv::Size resolution, float fps) {
-	bool (VideoCaptureType::*setfunc)(cv::Size, float) = &VideoCaptureType::set;
-
-	int waitFor = 100;
-	bool goSetting = true;
-	setCondition.store(true);
-	while (openCondition && setCondition) {
-		if (vidCap.status() == CAM_STATUS_OPENED && goSetting == true) {
-			pThread_pool->EnqueueJob(setfunc, &vidCap, resolution, fps);
-			goSetting = false;
-		}
-
-		if (vidCap.status() == CAM_STATUS_CLOSED)
-			goSetting = true;
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(waitFor));
-	}
-}
-
-
 MultiVideoCapture::MultiVideoCapture() {
 	mCameraIds.clear();
 	mApiPreference = -1;
@@ -181,11 +161,11 @@ MultiVideoCapture& MultiVideoCapture::operator >> (std::vector<FrameType>& frame
 }
 
 
-bool MultiVideoCapture::set(cv::Size resolution, float fps) {
-	const int nbDevs = (int)gVidCaps.size();
+bool MultiVideoCapture::set(std::vector<int> cameraIds, cv::Size resolution, float fps) {
+	const int nbDevs = (int)cameraIds.size();
 	bool status = true;
 	for (int i = 0; i < nbDevs; i++) {
-		bool status_set = this->set(mCameraIds[i], resolution, fps);
+		bool status_set = this->set(cameraIds[i], resolution, fps);
 		status = status && status_set;
 	}
 
@@ -207,7 +187,7 @@ bool MultiVideoCapture::set(int cameraId, cv::Size resolution, float fps) {
 	mResolutions[id] = resolution;
 	mFpses[id] = fps;
 
-	pThread_pool->EnqueueJob(setCamera, std::cref(camOpenCondition), std::ref(camSetCondition), std::ref(gVidCaps[id]), mResolutions[id], mFpses[id]);
+	gVidCaps[cameraId].set(resolution, fps);
 
 	return true;
 }

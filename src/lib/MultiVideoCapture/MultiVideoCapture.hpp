@@ -39,7 +39,7 @@ public:
 	virtual void open(std::vector<int> cameraIds);
 	virtual void open(std::vector<int> cameraIds, int apiPreference);
 	virtual void release();
-    
+
 	virtual bool isOpened(int cameraNum) const;
 	virtual bool isAnyOpened() const;
 	virtual bool isAllOpened() const;
@@ -47,15 +47,15 @@ public:
 	virtual bool read(std::vector<FrameType>& frames);
 	virtual MultiVideoCapture& operator >> (std::vector<FrameType>& frames);
 
-	virtual bool set(cv::Size resolution, float fps);
+	virtual bool set(std::vector<int> cameraIds, cv::Size resolution, float fps = 30.f);
 
 protected:
 	virtual void resize(size_t size);
-	virtual bool set(int cameraId, cv::Size resolution, float fps);
+	virtual bool set(int cameraId, cv::Size resolution, float fps = 30.f);
 
 protected:
 	std::vector<int> mCameraIds;
-    int mApiPreference;
+	int mApiPreference;
 
 	std::vector<cv::Size> mResolutions;
 	std::vector<float> mFpses;

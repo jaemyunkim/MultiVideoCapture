@@ -59,6 +59,14 @@ html
 *.ilk
 *.pdb
 *.suo
+*.vcxproj
+*.vcxproj.filters
+*.sln
 
 # vs code files
 .vscode
+
+# cmake directories and files
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
