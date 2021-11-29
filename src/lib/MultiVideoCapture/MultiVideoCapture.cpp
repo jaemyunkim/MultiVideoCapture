@@ -9,10 +9,10 @@ std::atomic_bool camSetCondition;
 ThreadPool::ThreadPool* pThread_pool = NULL;
 
 
-std::vector<VideoCaptureType> gVidCaps;	// to hide in the MultiVideoCapture class
+std::vector<VideoCaptureType> gVidCaps;	// to hide from the MultiVideoCapture class
 
 
-void openCameras(const std::atomic_bool& condition, std::vector<VideoCaptureType>& vidCaps, std::vector<int> camIds, int apiPreference) {
+void openCameras(const std::atomic_bool& condition, std::vector<int> camIds, int apiPreference) {
 	const int nbDevs = (int)camIds.size();
 	bool (VideoCaptureType::*openfunc)(int, int) = &VideoCaptureType::open;
 
@@ -21,9 +21,9 @@ void openCameras(const std::atomic_bool& condition, std::vector<VideoCaptureType
 	while (condition) {
 		std::vector<std::future<bool> > futures;
 		for (int i = 0; i < nbDevs; i++) {
-			if (vidCaps[i].status() == CAM_STATUS_CLOSED) {
+			if (gVidCaps[i].status() == CamStatus::CAM_STATUS_CLOSED) {
 				int id = camIds[i];
-				futures.emplace_back(pThread_pool->EnqueueJob(openfunc, &vidCaps[i], id, apiPreference));
+				futures.emplace_back(pThread_pool->EnqueueJob(openfunc, &gVidCaps[i], id, apiPreference));
 			}
 		}
 
@@ -38,6 +38,8 @@ MultiVideoCapture::MultiVideoCapture() {
 	mApiPreference = -1;
 	mResolutions.clear();
 	mFpses.clear();
+
+	mApiPreference = -1;
 }
 
 
@@ -60,7 +62,7 @@ void MultiVideoCapture::open(std::vector<int> cameraIds, int apiPreference) {
 	mApiPreference = apiPreference;
 	camOpenCondition.store(true);
 
-	pThread_pool->EnqueueJob(openCameras, std::cref(camOpenCondition), std::ref(gVidCaps), cameraIds, mApiPreference);
+	pThread_pool->EnqueueJob(openCameras, std::cref(camOpenCondition), cameraIds, mApiPreference);
 
 	while (!isAnyOpened()) {
 		std::cout << ".";
@@ -80,7 +82,7 @@ void MultiVideoCapture::release() {
 	std::vector<std::future<void> > futures;
 
 	for (int i = 0; i < nbDevs; i++) {
-		if (gVidCaps[i].status() != CAM_STATUS_CLOSED) {
+		if (gVidCaps[i].status() != CamStatus::CAM_STATUS_CLOSED) {
 			futures.emplace_back(pThread_pool->EnqueueJob(releasefunc, &gVidCaps[i]));
 		}
 	}
@@ -118,7 +120,7 @@ bool MultiVideoCapture::isAnyOpened() const {
 
 bool MultiVideoCapture::isAllOpened() const {
 	for (int i = 0; i < (int)gVidCaps.size(); i++) {
-		if (gVidCaps[i].status() == false) {
+		if (gVidCaps[i].isOpened() == false) {
 			return false;
 		}
 	}
@@ -136,7 +138,7 @@ bool MultiVideoCapture::read(std::vector<FrameType>& frames) {
 	bool (VideoCaptureType::*readfunc)(FrameType&) = &VideoCaptureType::read;
 
 	for (int i = 0; i < nbDevs; i++) {
-		if (gVidCaps[i].status() == CAM_STATUS_OPENED) {
+		if (gVidCaps[i].status() == CamStatus::CAM_STATUS_OPENED) {
 			futures.emplace_back(pThread_pool->EnqueueJob(readfunc, &gVidCaps[i], std::ref(frames[i])));
 		}
 		else

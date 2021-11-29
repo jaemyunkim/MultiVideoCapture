@@ -11,8 +11,8 @@
 #include "FrameType.hpp"
 
 
-enum CamStatus {
-	CAM_STATUS_CLOSED,
+enum class CamStatus {
+	CAM_STATUS_CLOSED = 0,
 	CAM_STATUS_OPENING,
 	CAM_STATUS_OPENED,
 	CAM_STATUS_SETTING,
