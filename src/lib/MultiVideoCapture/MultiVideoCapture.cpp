@@ -59,11 +59,6 @@ void openFile(std::vector<std::string> filenames) {
 
 MultiVideoCapture::MultiVideoCapture(bool verbose) {
 	mVideoIds.clear();
-	mApiPreference = -1;
-	mResolutions.clear();
-	mFpses.clear();
-
-	mApiPreference = -1;
 	mVerbose = verbose;
 	mRetryOpening = false;
 }
@@ -124,11 +119,10 @@ void MultiVideoCapture::open(std::vector<int> indices, int apiPreference, bool r
 
 	pThread_pool = new ThreadPool::ThreadPool(gVidCaps.size() * 2 + 4);
 
-	mApiPreference = apiPreference;
 	mRetryOpening = retry;
 	gKeepCamOpening.store(mRetryOpening ? true : false);
 
-	pThread_pool->EnqueueJob(openVideo, indices, mApiPreference);
+	pThread_pool->EnqueueJob(openVideo, indices, apiPreference);
 
 	while (!isAnyOpened()) {
 		if (mVerbose) {
@@ -146,8 +140,7 @@ void MultiVideoCapture::open(std::vector<int> indices, int apiPreference, bool r
 void MultiVideoCapture::release() {
 	// stop thread flag
 	gKeepCamOpening.store(false);
-	mApiPreference = -1;
-
+	
 	const int nbDevs = (int)gVidCaps.size();
 	void (VideoCaptureType::*releasefunc)() = &VideoCaptureType::release;
 	std::vector<std::future<void> > futures;
@@ -338,6 +331,11 @@ bool MultiVideoCapture::set(int propId, std::vector<double> values) {
 }
 
 
+bool MultiVideoCapture::set(int index, int propId, double value) {
+	return gVidCaps[index]->set(propId, value);
+}
+
+
 std::vector<double> MultiVideoCapture::get(int propId) const {
 	std::vector<double> res(gVidCaps.size(), -1);
 	for (size_t i = 0; i < gVidCaps.size(); i++) {
@@ -348,34 +346,8 @@ std::vector<double> MultiVideoCapture::get(int propId) const {
 }
 
 
-bool MultiVideoCapture::set(std::vector<int> indices, cv::Size resolution, float fps) {
-	const int nbDevs = (int)indices.size();
-	bool status = true;
-	for (int i = 0; i < nbDevs; i++) {
-		bool status_set = this->set(indices[i], resolution, fps);
-		status = status && status_set;
-	}
-
-	return status;
-}
-
-
-bool MultiVideoCapture::set(int index, cv::Size resolution, float fps) {
-	int id = std::find(mVideoIds.begin(), mVideoIds.end(), index) - mVideoIds.begin();
-	if (id >= mVideoIds.size())
-		return false;
-
-	if (mResolutions[id] == resolution && mFpses[id] == fps)
-		return true;
-	else
-		gCamSetChanged.store(false);	// for terminating the thread that manages the previous setting.
-
-	mResolutions[id] = resolution;
-	mFpses[id] = fps;
-
-	gVidCaps[id]->set(resolution, fps);
-
-	return true;
+double MultiVideoCapture::get(int index, int propId) const {
+	return gVidCaps[index]->get(propId);
 }
 
 
@@ -394,12 +366,8 @@ void MultiVideoCapture::resize(size_t size) {
 
 		gVidCaps.resize(size);
 		mVideoIds.resize(size, -1);
-		mResolutions.resize(size);
-		mFpses.resize(size);
 		for (int i = 0; i < size; i++) {
 			gVidCaps[i] = new VideoCaptureType;
-			mResolutions[i] = { (int)gVidCaps[i]->get(cv::CAP_PROP_FRAME_WIDTH), (int)gVidCaps[i]->get(cv::CAP_PROP_FRAME_HEIGHT) };
-			mFpses[i] = gVidCaps[i]->get(cv::CAP_PROP_FPS);
 		}
 	}
 }

@@ -41,7 +41,6 @@ public:
 	virtual bool read(FrameType& frame);
 
 	virtual bool set(int propId, double value);
-	virtual bool set(cv::Size resolution = { -1, -1 }, float fps = -1.f);
 	virtual double get(int propId) const;
 
 	virtual void verbose(bool verbose = false);
@@ -54,9 +53,6 @@ protected:
 	std::chrono::system_clock::time_point mGrabTimestamp;
 	int mCloseCount;
 	int mCloseLimit;
-
-	cv::Size mResolution;
-	float mFps;
 
 	bool mVerbose;
 

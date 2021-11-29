@@ -10,8 +10,6 @@ namespace fs = boost::filesystem;
 VideoCaptureType::VideoCaptureType() {
 	mStatus = VideoStatus::VIDEO_STATUS_CLOSED;
 	mIsSet = false;
-	mResolution = { 640, 480 };
-	mFps = 30.f;
 	mVerbose = false;
 }
 
@@ -161,11 +159,8 @@ bool VideoCaptureType::open(int index, int apiPreference) {
 			std::lock_guard<std::mutex> lock(mMtxStatus);
 			mStatus = VideoStatus::VIDEO_STATUS_OPENED;
 		}
-		if (mIsSet)
-			this->set(mResolution, mFps);
 
-
-		std::string name = cv::VideoCapture::getBackendName();
+		std::string name = cv::VideoCapture::getBackendName();	//TODO check this line!
 	}
 	else {
 		{
@@ -281,78 +276,8 @@ bool VideoCaptureType::set(int propId, double value) {
 }
 
 
-bool VideoCaptureType::set(cv::Size resolution, float fps) {
-	VideoStatus prevStatus = mStatus;
-	{
-		std::lock_guard<std::mutex> lock(mMtxStatus);
-		mStatus = VideoStatus::VIDEO_STATUS_SETTING;
-	}
-	mIsSet = true;
-
-	// get old settings
-	cv::Size oldSize((int)cv::VideoCapture::get(cv::CAP_PROP_FRAME_WIDTH), (int)cv::VideoCapture::get(cv::CAP_PROP_FRAME_HEIGHT));
-	double oldFps = cv::VideoCapture::get(cv::CAP_PROP_FPS);
-	double oldAutofocus = cv::VideoCapture::get(cv::CAP_PROP_AUTOFOCUS);
-
-	if (resolution == oldSize && fps == oldFps)
-		return true;
-
-	if (resolution == cv::Size(-1, -1))	resolution = mResolution;
-	else	mResolution = resolution;
-	if (mFps == -1.f)	fps = mFps;
-	else	mFps = fps;
-
-	// disable autofocus
-	if (oldAutofocus != 0) {
-		cv::VideoCapture::set(cv::CAP_PROP_AUTOFOCUS, 0);
-	}
-
-	// set resolution and fps
-	bool statusSize = true, statusFps = true;
-	if (resolution != oldSize) {
-		statusSize =
-			cv::VideoCapture::set(cv::CAP_PROP_FRAME_WIDTH, resolution.width) &&
-			cv::VideoCapture::set(cv::CAP_PROP_FRAME_HEIGHT, resolution.height);
-	}
-	if (fps != oldFps) {
-		statusFps = cv::VideoCapture::set(cv::CAP_PROP_FPS, fps);
-	}
-
-	if (statusSize && statusFps) {
-		{
-			std::lock_guard<std::mutex> lock(mMtxStatus);
-			mStatus = prevStatus;
-		}
-		return true;
-	}
-	else {
-		// rollback resolution
-		cv::VideoCapture::set(cv::CAP_PROP_FRAME_WIDTH, oldSize.width);
-		cv::VideoCapture::set(cv::CAP_PROP_FRAME_HEIGHT, oldSize.height);
-
-		// rollback fps
-		cv::VideoCapture::set(cv::CAP_PROP_FPS, oldFps);
-		{
-			std::lock_guard<std::mutex> lock(mMtxStatus);
-			mStatus = prevStatus;
-		}
-		return false;
-	}
-}
-
-
 double VideoCaptureType::get(int propId) const {
-	switch (propId)
-	{
-	case cv::CAP_PROP_FRAME_WIDTH:
-		return mResolution.width;
-	case cv::CAP_PROP_FRAME_HEIGHT:
-		return mResolution.height;
-	case cv::CAP_PROP_FPS:
-		return mFps;
-	default:
-		return cv::VideoCapture::get(propId);
-	}
+	return cv::VideoCapture::get(propId);
 }
 
 

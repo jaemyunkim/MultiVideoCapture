@@ -54,24 +54,20 @@ public:
 	MULTIVIDEOCAPTURE_EXPORTS virtual bool read(std::vector<FrameType>& frames);
 	
 	MULTIVIDEOCAPTURE_EXPORTS virtual bool set(int propId, double value);
-	MULTIVIDEOCAPTURE_EXPORTS virtual bool set(int propId, std::vector<double> values);
+	MULTIVIDEOCAPTURE_EXPORTS virtual bool set(int propId, std::vector<double> value);
+	MULTIVIDEOCAPTURE_EXPORTS virtual bool set(int index, int propId, double value);
 	MULTIVIDEOCAPTURE_EXPORTS virtual std::vector<double> get(int propId) const;
-	MULTIVIDEOCAPTURE_EXPORTS virtual bool set(std::vector<int> indices, cv::Size resolution, float fps = 30.f);
+	MULTIVIDEOCAPTURE_EXPORTS virtual double get(int index, int propId) const;
 	
 	MULTIVIDEOCAPTURE_EXPORTS virtual void verbose(bool verbose = false);
 
 protected:
 	virtual void resize(size_t size);
-	virtual bool set(int index, cv::Size resolution, float fps = 30.f);
 
 protected:
 	std::vector<int> mVideoIds;
-	int mApiPreference;
 	bool mVerbose;
 	bool mRetryOpening;
-
-	std::vector<cv::Size> mResolutions;
-	std::vector<float> mFpses;
 };
 
 

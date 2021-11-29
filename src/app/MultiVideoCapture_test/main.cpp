@@ -1,25 +1,33 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <numeric>
 
 #include "opencv2/opencv.hpp"
 #include "MultiVideoCapture.hpp"
 
+#include "boost/filesystem.hpp"
+
+
+std::vector<int> camera_open(MultiVideoCapture& mvc, std::vector<int> camIds, bool retry = false);
+std::vector<int> file_open(MultiVideoCapture& mvc, std::vector<std::string> filenames, bool retry = false);
+
 
 int main() {
-	std::vector<int> camIds = { 0, 1 };
-	std::vector<FrameType> images(camIds.size());
-	//cv::Size resolution = { 1920, 1080 };
-	//cv::Size resolution = { 1280, 720 };
-	//cv::Size resolution = { 800, 600 };
-	//cv::Size resolution = { 640, 480 };
-	cv::Size resolution = { 640, 360 };
-	//cv::Size resolution = { 320, 240 };
-	float fps = 30.f;
+	std::vector<int> videoIds;
 
 	MultiVideoCapture mvc(true);
-	mvc.open(camIds, CV_CAP_DSHOW, true);
-	mvc.set(camIds, resolution, fps);
+	videoIds = camera_open(mvc, { 0, 1 }, true);
+
+	std::vector<FrameType> images(videoIds.size());
+	cv::Size resolution = { 640, 360 };
+	float fps = 30.f;
+
+
+	mvc.set(cv::CAP_PROP_FRAME_WIDTH, resolution.width);
+	mvc.set(cv::CAP_PROP_FRAME_HEIGHT, resolution.height);
+	mvc.set(cv::CAP_PROP_FPS, fps);
+
 
 	std::chrono::milliseconds duration(long(1000.f / fps));
 	std::chrono::system_clock::time_point wait_until;
@@ -30,13 +38,15 @@ int main() {
 		wait_until = std::chrono::system_clock::now() + duration;
 
 		capture_times[0] = std::chrono::system_clock::now();
-		mvc >> images;
+		//mvc >> images;
+		if (mvc.grab())
+			mvc.retrieve(images);
 		capture_times[1] = std::chrono::system_clock::now();
 
-		for (int i = 0; i < camIds.size(); i++) {
+		for (int i = 0; i < videoIds.size(); i++) {
 			cv::flip(images[i].mat(), images[i].mat(), 1);	// horizontal flip
 
-			const int id = camIds[i];
+			const int id = videoIds[i];
 			cam_times[i] = images[i].timestamp();
 			if (!images[i].empty())
 				cv::imshow("cam " + std::to_string(id), images[i].mat());
@@ -58,4 +68,21 @@ int main() {
 	mvc.release();
 
 	return 1;
+}
+
+
+std::vector<int> camera_open(MultiVideoCapture& mvc, std::vector<int> camIds, bool retry) {
+	mvc.open(camIds, CV_CAP_DSHOW, retry);
+	
+	return camIds;
+}
+
+
+std::vector<int> file_open(MultiVideoCapture& mvc, std::vector<std::string> filenames, bool retry) {
+	std::vector<int> videoIds(filenames.size());
+	std::iota(videoIds.begin(), videoIds.end(), 0);
+
+	mvc.open(filenames);
+
+	return videoIds;
 }
