@@ -25,6 +25,7 @@ public:
 	VideoCaptureType();
 	virtual ~VideoCaptureType();
 
+	virtual bool open(const std::string& filename);
 	virtual bool open(int index);
 	virtual bool open(int index, int apiPreference);
 	virtual bool isOpened() const;

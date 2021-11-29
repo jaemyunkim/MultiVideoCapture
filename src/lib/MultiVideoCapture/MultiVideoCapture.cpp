@@ -33,6 +33,20 @@ void openCameras(std::vector<int> camIds, int apiPreference) {
 }
 
 
+void openFile(std::vector<std::string> filenames) {
+	const size_t nbFiles = filenames.size();
+	bool (VideoCaptureType::*openfunc)(const std::string&) = &VideoCaptureType::open;
+
+	// open the video files
+	std::vector<std::future<bool> > futures;
+	for (size_t i = 0; i < nbFiles; i++) {
+		if (gVidCaps[i]->status() == CamStatus::CAM_STATUS_CLOSED) {;
+			futures.emplace_back(pThread_pool->EnqueueJob(openfunc, gVidCaps[i], filenames[i]));
+		}
+	}
+}
+
+
 MultiVideoCapture::MultiVideoCapture(bool verbose) {
 	mCameraIds.clear();
 	mApiPreference = -1;
@@ -50,8 +64,47 @@ MultiVideoCapture::~MultiVideoCapture() {
 }
 
 
-void MultiVideoCapture::open(std::vector<int> cameraIds, bool retry) {
-	this->open(cameraIds, -1, retry);
+void MultiVideoCapture::open(const std::string& filename) {
+	this->open({ filename });
+}
+
+
+void MultiVideoCapture::open(int index, bool retry) {
+	this->open({ index }, -1, retry);
+}
+
+
+void MultiVideoCapture::open(int index, int apiPreference, bool retry) {
+	this->open({ index }, apiPreference, retry);
+}
+
+
+void MultiVideoCapture::open(const std::vector<std::string>& filenames) {
+	this->resize(filenames.size());
+	mCameraIds.clear();
+
+	pThread_pool = new ThreadPool::ThreadPool(gVidCaps.size() * 2 + 4);
+
+	mRetryOpening = false;
+	gKeepCamOpening.store(mRetryOpening ? true : false);
+
+	pThread_pool->EnqueueJob(openFile, filenames);
+
+	while (!isAllOpened()) {
+		if (mVerbose) {
+			std::cout << ".";
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+
+	if (mVerbose) {
+		std::cout << "one of the cameras is open!" << std::endl;
+	}
+}
+
+
+void MultiVideoCapture::open(std::vector<int> indices, bool retry) {
+	this->open(indices, -1, retry);
 }
 
 
@@ -118,6 +171,16 @@ bool MultiVideoCapture::isOpened(int cameraNum) const {
 		return true;
 	else
 		return false;
+}
+
+
+bool MultiVideoCapture::isOpened(bool all) const {
+	if (all == true) {
+		return isAllOpened();
+	}
+	else {
+		return isAnyOpened();
+	}
 }
 
 

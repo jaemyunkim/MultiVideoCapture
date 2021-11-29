@@ -30,17 +30,21 @@
 #include "opencv2/opencv.hpp"
 #include "FrameType.hpp"
 
-
 class MULTIVIDEOCAPTURE_EXPORTS MultiVideoCapture {
 public:
 	MultiVideoCapture(bool verbose = false);
 	virtual ~MultiVideoCapture();
 
-	virtual void open(std::vector<int> cameraIds, bool retry = false);
-	virtual void open(std::vector<int> cameraIds, int apiPreference, bool retry = false);
+	virtual void open(const std::string& filename);
+	virtual void open(int index, bool retry = false);
+	virtual void open(int index, int apiPreference, bool retry = false);
+	virtual void open(const std::vector<std::string>& filenames);
+	virtual void open(std::vector<int> indices, bool retry = false);
+	virtual void open(std::vector<int> indices, int apiPreference, bool retry = false);
 	virtual void release();
 
 	virtual bool isOpened(int cameraNum) const;
+	virtual bool isOpened(bool all = false) const;
 	virtual bool isAnyOpened() const;
 	virtual bool isAllOpened() const;
 
@@ -66,4 +70,4 @@ protected:
 };
 
 
-#endif // ~MULTI_VIDEO_CAPTURE_H_
+#endif // !MULTI_VIDEO_CAPTURE_H_

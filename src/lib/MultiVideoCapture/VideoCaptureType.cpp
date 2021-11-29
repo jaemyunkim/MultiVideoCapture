@@ -3,6 +3,9 @@
 #include <chrono>
 #include <thread>
 
+#include "boost/filesystem.hpp"
+namespace fs = boost::filesystem;
+
 
 VideoCaptureType::VideoCaptureType() {
 	this->release();
@@ -15,6 +18,81 @@ VideoCaptureType::VideoCaptureType() {
 
 VideoCaptureType::~VideoCaptureType() {
 	this->release();
+}
+
+
+bool VideoCaptureType::open(const std::string& filename) {
+	fs::path fName = filename;
+
+	// file existance check
+	if (!fs::exists(fName)) {
+		std::lock_guard<std::mutex> lock(mMtxMsg);
+		std::string msg = "The file (" + fName.filename().string() + " cannot be opened";
+		if (mVerbose) {
+			std::cout << msg << std::endl;
+		}
+		//throw std::runtime_error(msg);
+		return false;
+	}
+
+	// check camera status
+	if (mStatus == CamStatus::CAM_STATUS_OPENED) {
+		std::lock_guard<std::mutex> lock(mMtxMsg);
+		std::string msg = "The file (" + fName.filename().string() + " cannot be opened";
+		if (mVerbose) {
+			std::cout << msg << std::endl;
+		}
+		//throw std::runtime_error(msg);
+		return false;
+	}
+	else if (mStatus == CamStatus::CAM_STATUS_SETTING) {
+		std::lock_guard<std::mutex> lock(mMtxMsg);
+		std::string msg = "The file (" + fName.filename().string() + " cannot be opened";
+		if (mVerbose) {
+			std::cout << msg << std::endl;
+		}
+		//throw std::runtime_error(msg);
+		return false;
+	}
+	else if (mStatus == CamStatus::CAM_STATUS_OPENING) {
+		std::lock_guard<std::mutex> lock(mMtxMsg);
+		std::string msg = "The file (" + fName.filename().string() + " cannot be opened";
+		if (mVerbose) {
+			std::cout << msg << std::endl;
+		}
+		//throw std::runtime_error(msg);
+		return false;
+	}
+
+	// get previous status
+	CamStatus prevStatus = mStatus;
+
+	// try to open the camera
+	release();	// handling the camera disconnected previously
+	{
+		std::lock_guard<std::mutex> lock(mMtxStatus);
+		mStatus = CamStatus::CAM_STATUS_OPENING;
+	}
+
+	bool cam_status = false;
+	cam_status = cv::VideoCapture::open(fName.string());
+
+	if (cam_status == true) {
+		std::lock_guard<std::mutex> lock(mMtxStatus);
+		mStatus = CamStatus::CAM_STATUS_OPENED;
+	}
+	else {
+		release();
+		std::lock_guard<std::mutex> lock(mMtxMsg);
+		std::string msg = "The file (" + fName.filename().string() + " cannot be opened";
+		if (mVerbose) {
+			std::cout << msg << std::endl;
+		}
+		mStatus = prevStatus;
+		throw std::runtime_error(msg);
+	}
+
+	return cam_status;
 }
 
 
