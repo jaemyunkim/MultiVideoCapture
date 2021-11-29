@@ -36,8 +36,8 @@ public:
 	MultiVideoCapture(bool verbose = false);
 	virtual ~MultiVideoCapture();
 
-	virtual void open(std::vector<int> cameraIds);
-	virtual void open(std::vector<int> cameraIds, int apiPreference);
+	virtual void open(std::vector<int> cameraIds, bool retry = false);
+	virtual void open(std::vector<int> cameraIds, int apiPreference, bool retry = false);
 	virtual void release();
 
 	virtual bool isOpened(int cameraNum) const;
@@ -59,6 +59,7 @@ protected:
 	std::vector<int> mCameraIds;
 	int mApiPreference;
 	bool mVerbose;
+	bool mRetryOpening;
 
 	std::vector<cv::Size> mResolutions;
 	std::vector<float> mFpses;

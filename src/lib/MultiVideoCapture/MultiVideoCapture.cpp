@@ -2,8 +2,8 @@
 #include "VideoCaptureType.hpp"
 
 #include <atomic>
-std::atomic_bool camOpenCondition;
-std::atomic_bool camSetCondition;
+std::atomic_bool gKeepCamOpening;
+std::atomic_bool gCamSetChanged;	//TODO adding the function for online camera settings change.
 
 #include "ThreadPool.hpp"
 ThreadPool::ThreadPool* pThread_pool = NULL;
@@ -12,13 +12,13 @@ ThreadPool::ThreadPool* pThread_pool = NULL;
 std::vector<VideoCaptureType*> gVidCaps;	// to hide from the MultiVideoCapture class
 
 
-void openCameras(const std::atomic_bool& condition, std::vector<int> camIds, int apiPreference) {
+void openCameras(std::vector<int> camIds, int apiPreference) {
 	const int nbDevs = (int)camIds.size();
 	bool (VideoCaptureType::*openfunc)(int, int) = &VideoCaptureType::open;
 
 	// check the camera status whether open or not
 	int waitFor = 2000;
-	while (condition) {
+	do {
 		std::vector<std::future<bool> > futures;
 		for (int i = 0; i < nbDevs; i++) {
 			if (gVidCaps[i]->status() == CamStatus::CAM_STATUS_CLOSED) {
@@ -29,7 +29,7 @@ void openCameras(const std::atomic_bool& condition, std::vector<int> camIds, int
 
 		// keep trying to open each camera in every [waitFor] sec.
 		std::this_thread::sleep_for(std::chrono::milliseconds(waitFor));
-	}
+	} while (gKeepCamOpening);
 }
 
 
@@ -41,6 +41,7 @@ MultiVideoCapture::MultiVideoCapture(bool verbose) {
 
 	mApiPreference = -1;
 	mVerbose = verbose;
+	mRetryOpening = false;
 }
 
 
@@ -49,21 +50,22 @@ MultiVideoCapture::~MultiVideoCapture() {
 }
 
 
-void MultiVideoCapture::open(std::vector<int> cameraIds) {
-	this->open(cameraIds, -1);
+void MultiVideoCapture::open(std::vector<int> cameraIds, bool retry) {
+	this->open(cameraIds, -1, retry);
 }
 
 
-void MultiVideoCapture::open(std::vector<int> cameraIds, int apiPreference) {
+void MultiVideoCapture::open(std::vector<int> cameraIds, int apiPreference, bool retry) {
 	this->resize(cameraIds.size());
 	mCameraIds = cameraIds;
 
 	pThread_pool = new ThreadPool::ThreadPool(gVidCaps.size() * 2 + 4);
 
 	mApiPreference = apiPreference;
-	camOpenCondition.store(true);
+	mRetryOpening = retry;
+	gKeepCamOpening.store(mRetryOpening ? true : false);
 
-	pThread_pool->EnqueueJob(openCameras, std::cref(camOpenCondition), cameraIds, mApiPreference);
+	pThread_pool->EnqueueJob(openCameras, cameraIds, mApiPreference);
 
 	while (!isAnyOpened()) {
 		if (mVerbose) {
@@ -80,7 +82,7 @@ void MultiVideoCapture::open(std::vector<int> cameraIds, int apiPreference) {
 
 void MultiVideoCapture::release() {
 	// stop thread flag
-	camOpenCondition.store(false);
+	gKeepCamOpening.store(false);
 	mApiPreference = -1;
 
 	const int nbDevs = (int)gVidCaps.size();
@@ -195,7 +197,7 @@ bool MultiVideoCapture::set(int cameraId, cv::Size resolution, float fps) {
 	if (mResolutions[id] == resolution && mFpses[id] == fps)
 		return true;
 	else
-		camSetCondition.store(false);	// for terminating the thread that manages the previous setting.
+		gCamSetChanged.store(false);	// for terminating the thread that manages the previous setting.
 
 	mResolutions[id] = resolution;
 	mFpses[id] = fps;
