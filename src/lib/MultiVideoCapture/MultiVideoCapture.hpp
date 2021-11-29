@@ -33,7 +33,7 @@
 
 class MULTIVIDEOCAPTURE_EXPORTS MultiVideoCapture {
 public:
-	MultiVideoCapture();
+	MultiVideoCapture(bool verbose = false);
 	virtual ~MultiVideoCapture();
 
 	virtual void open(std::vector<int> cameraIds);
@@ -49,6 +49,8 @@ public:
 
 	virtual bool set(std::vector<int> cameraIds, cv::Size resolution, float fps = 30.f);
 
+	virtual void verbose(bool verbose = false);
+
 protected:
 	virtual void resize(size_t size);
 	virtual bool set(int cameraId, cv::Size resolution, float fps = 30.f);
@@ -56,6 +58,7 @@ protected:
 protected:
 	std::vector<int> mCameraIds;
 	int mApiPreference;
+	bool mVerbose;
 
 	std::vector<cv::Size> mResolutions;
 	std::vector<float> mFpses;

@@ -33,13 +33,14 @@ void openCameras(const std::atomic_bool& condition, std::vector<int> camIds, int
 }
 
 
-MultiVideoCapture::MultiVideoCapture() {
+MultiVideoCapture::MultiVideoCapture(bool verbose) {
 	mCameraIds.clear();
 	mApiPreference = -1;
 	mResolutions.clear();
 	mFpses.clear();
 
 	mApiPreference = -1;
+	mVerbose = verbose;
 }
 
 
@@ -65,10 +66,15 @@ void MultiVideoCapture::open(std::vector<int> cameraIds, int apiPreference) {
 	pThread_pool->EnqueueJob(openCameras, std::cref(camOpenCondition), cameraIds, mApiPreference);
 
 	while (!isAnyOpened()) {
-		std::cout << ".";
+		if (mVerbose) {
+			std::cout << ".";
+		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
-	std::cout << "one of the cameras is open!" << std::endl;
+	
+	if (mVerbose) {
+		std::cout << "one of the cameras is open!" << std::endl;
+	}
 }
 
 
@@ -181,7 +187,6 @@ bool MultiVideoCapture::set(std::vector<int> cameraIds, cv::Size resolution, flo
 }
 
 
-
 bool MultiVideoCapture::set(int cameraId, cv::Size resolution, float fps) {
 	int id = std::find(mCameraIds.begin(), mCameraIds.end(), cameraId) - mCameraIds.begin();
 	if (id >= mCameraIds.size())
@@ -198,6 +203,15 @@ bool MultiVideoCapture::set(int cameraId, cv::Size resolution, float fps) {
 	gVidCaps[id]->set(resolution, fps);
 
 	return true;
+}
+
+
+void MultiVideoCapture::verbose(bool verbose) {
+	mVerbose = verbose;
+
+	for (auto vc : gVidCaps) {
+		vc->verbose(mVerbose);
+	}
 }
 
 

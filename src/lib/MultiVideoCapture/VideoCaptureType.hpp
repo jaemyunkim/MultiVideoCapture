@@ -6,6 +6,7 @@
 #  error MultiVideoCapture.hpp header must be compiled as C++
 #endif
 
+#include <mutex>
 
 #include "opencv2/opencv.hpp"
 #include "FrameType.hpp"
@@ -38,6 +39,8 @@ public:
 	virtual bool set(cv::Size resolution = { -1, -1 }, float fps = -1.f);
 	virtual double get(int propId) const;
 
+	virtual void verbose(bool verbose = false);
+
 protected:
 	int mCamId;
 	CamStatus mStatus;
@@ -47,6 +50,11 @@ protected:
 
 	cv::Size mResolution;
 	float mFps;
+
+	bool mVerbose;
+
+	std::mutex mMtxStatus;
+	std::mutex mMtxMsg;
 };
 
 

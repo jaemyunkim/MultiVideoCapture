@@ -2,9 +2,6 @@
 
 #include <chrono>
 #include <thread>
-#include <mutex>
-std::mutex gMtxStatus;
-std::mutex gMtxPrintMsg;
 
 
 VideoCaptureType::VideoCaptureType() {
@@ -12,6 +9,7 @@ VideoCaptureType::VideoCaptureType() {
 	mResolution = { 640, 480 };
 	mFps = 30.f;
 	mIsSet = false;
+	mVerbose = false;
 }
 
 
@@ -28,25 +26,34 @@ bool VideoCaptureType::open(int index) {
 bool VideoCaptureType::open(int index, int apiPreference) {
 	// check camera status
 	if (mStatus == CamStatus::CAM_STATUS_OPENED) {
-		std::lock_guard<std::mutex> lock(gMtxPrintMsg);
-		std::cout << "camera " << index << " is already opened" << std::endl;
+		std::lock_guard<std::mutex> lock(mMtxMsg);
+		std::string msg = "camera " + std::to_string(index) + " is already opened";
+		if (mVerbose) {
+			std::cout << msg << std::endl;
+		}
 		return false;
 	}
 	else if (mStatus == CamStatus::CAM_STATUS_SETTING) {
-		std::lock_guard<std::mutex> lock(gMtxPrintMsg);
-		std::cout << "camera " << index << " is already opened and is on setting" << std::endl;
+		std::lock_guard<std::mutex> lock(mMtxMsg);
+		std::string msg = "camera " + std::to_string(index) + " is already opened and is on setting";
+		if (mVerbose) {
+			std::cout << msg << std::endl;
+		}
 		return false;
 	}
 	else if (mStatus == CamStatus::CAM_STATUS_OPENING) {
-		std::lock_guard<std::mutex> lock(gMtxPrintMsg);
-		std::cout << "camera " << index << " is opening" << std::endl;
+		std::lock_guard<std::mutex> lock(mMtxMsg);
+		std::string msg = "camera " + std::to_string(index) + " is opening";
+		if (mVerbose) {
+			std::cout << msg << std::endl;
+		}
 		return false;
 	}
 
 	// try to open the camera
 	release();	// handling the camera disconnected previously
 	{
-		std::lock_guard<std::mutex> lock(gMtxStatus);
+		std::lock_guard<std::mutex> lock(mMtxStatus);
 		mStatus = CamStatus::CAM_STATUS_OPENING;
 	}
 	mCamId = index;
@@ -58,7 +65,7 @@ bool VideoCaptureType::open(int index, int apiPreference) {
 
 	if (cam_status == true && cv::VideoCapture::grab() == true) {
 		{
-			std::lock_guard<std::mutex> lock(gMtxStatus);
+			std::lock_guard<std::mutex> lock(mMtxStatus);
 			mStatus = CamStatus::CAM_STATUS_OPENED;
 		}
 		if (mIsSet)
@@ -68,6 +75,11 @@ bool VideoCaptureType::open(int index, int apiPreference) {
 		release();
 		std::lock_guard<std::mutex> lock(gMtxPrintMsg);
 		std::cout << "can't open the camera " << index << std::endl;
+		std::lock_guard<std::mutex> lock(mMtxMsg);
+		std::string msg = "can't open a camera " + std::to_string(index);
+		if (mVerbose) {
+			std::cout << msg << std::endl;
+		}
 	}
 
 	return cam_status;
@@ -89,7 +101,7 @@ CamStatus VideoCaptureType::status() const {
 
 void VideoCaptureType::release() {
 	{
-		std::lock_guard<std::mutex> lock(gMtxStatus);
+		std::lock_guard<std::mutex> lock(mMtxStatus);
 		mStatus = CamStatus::CAM_STATUS_CLOSED;
 	}
 
@@ -115,7 +127,7 @@ bool VideoCaptureType::read(FrameType& frame) {
 	else {
 		//release();
 		{
-			std::lock_guard<std::mutex> lock(gMtxStatus);
+			std::lock_guard<std::mutex> lock(mMtxStatus);
 			mStatus = CamStatus::CAM_STATUS_CLOSED;
 		}
 		frame.release();
@@ -134,7 +146,7 @@ VideoCaptureType& VideoCaptureType::operator >> (FrameType& frame) {
 
 bool VideoCaptureType::set(cv::Size resolution, float fps) {
 	{
-		std::lock_guard<std::mutex> lock(gMtxStatus);
+		std::lock_guard<std::mutex> lock(mMtxStatus);
 		mStatus = CamStatus::CAM_STATUS_SETTING;
 	}
 	mIsSet = true;
@@ -170,7 +182,7 @@ bool VideoCaptureType::set(cv::Size resolution, float fps) {
 
 	if (statusSize && statusFps) {
 		{
-			std::lock_guard<std::mutex> lock(gMtxStatus);
+			std::lock_guard<std::mutex> lock(mMtxStatus);
 			mStatus = CamStatus::CAM_STATUS_OPENED;
 		}
 		return true;
@@ -183,7 +195,7 @@ bool VideoCaptureType::set(cv::Size resolution, float fps) {
 		// rollback fps
 		cv::VideoCapture::set(cv::CAP_PROP_FPS, oldFps);
 		{
-			std::lock_guard<std::mutex> lock(gMtxStatus);
+			std::lock_guard<std::mutex> lock(mMtxStatus);
 			mStatus = CamStatus::CAM_STATUS_OPENED;
 		}
 		return false;
@@ -203,4 +215,9 @@ double VideoCaptureType::get(int propId) const {
 	default:
 		return cv::VideoCapture::get(propId);
 	}
+}
+
+
+void VideoCaptureType::verbose(bool verbose) {
+	mVerbose = verbose;
 }
