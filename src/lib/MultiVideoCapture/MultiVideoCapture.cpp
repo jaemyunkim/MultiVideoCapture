@@ -189,7 +189,7 @@ bool MultiVideoCapture::set(int cameraId, cv::Size resolution, float fps) {
 	mResolutions[id] = resolution;
 	mFpses[id] = fps;
 
-	gVidCaps[cameraId].set(resolution, fps);
+	gVidCaps[id].set(resolution, fps);
 
 	return true;
 }
