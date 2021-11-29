@@ -206,6 +206,62 @@ bool MultiVideoCapture::isAllOpened() const {
 }
 
 
+bool MultiVideoCapture::grab() {
+	const size_t nbDevs = gVidCaps.size();
+
+	std::vector<std::future<bool> > futures;
+	bool (VideoCaptureType::*grabfunc)() = &VideoCaptureType::grab;
+
+	for (int i = 0; i < nbDevs; i++) {
+		if (gVidCaps[i]->status() == CamStatus::CAM_STATUS_OPENED) {
+			futures.emplace_back(pThread_pool->EnqueueJob(grabfunc, gVidCaps[i]));
+		}
+	}
+
+	// wait until all jobs are done.
+	bool status = false;
+	for (int i = 0; i < futures.size(); i++) {
+		futures[i].wait();
+		status = status || futures[i].get();
+	}
+
+	return status;
+}
+
+
+bool MultiVideoCapture::retrieve(std::vector<FrameType>& frames, int flag) {
+	const size_t nbDevs = gVidCaps.size();
+	if (nbDevs != frames.size()) {
+		frames.resize(nbDevs);
+	}
+
+	std::vector<std::future<bool> > futures;
+	bool (VideoCaptureType::* retrievefunc)(FrameType&, int) = &VideoCaptureType::retrieve;
+
+	for (int i = 0; i < nbDevs; i++) {
+		if (gVidCaps[i]->status() == CamStatus::CAM_STATUS_OPENED) {
+			futures.emplace_back(pThread_pool->EnqueueJob(retrievefunc, gVidCaps[i], std::ref(frames[i]), flag));
+		}
+	}
+
+	// wait until all jobs are done.
+	bool status = false;
+	for (int i = 0; i < futures.size(); i++) {
+		futures[i].wait();
+		status = status || futures[i].get();
+	}
+
+	return status;
+}
+
+
+MultiVideoCapture& MultiVideoCapture::operator >> (std::vector<FrameType>& frames) {
+	read(frames);
+
+	return *this;
+}
+
+
 bool MultiVideoCapture::read(std::vector<FrameType>& frames) {
 	const int nbDevs = (int)gVidCaps.size();
 	if (nbDevs != frames.size())
@@ -230,13 +286,6 @@ bool MultiVideoCapture::read(std::vector<FrameType>& frames) {
 	}
 
 	return status;
-}
-
-
-MultiVideoCapture& MultiVideoCapture::operator >> (std::vector<FrameType>& frames) {
-	read(frames);
-
-	return *this;
 }
 
 

@@ -33,9 +33,10 @@ public:
 
 	virtual void release();
 
+	virtual bool grab();
 	virtual bool retrieve(FrameType& frame, int flag = 0);
-	virtual bool read(FrameType& frame);
 	virtual VideoCaptureType& operator >> (FrameType& frame);
+	virtual bool read(FrameType& frame);
 
 	virtual bool set(int propId, double value);
 	virtual bool set(cv::Size resolution = { -1, -1 }, float fps = -1.f);
@@ -47,6 +48,8 @@ protected:
 	int mCamId;
 	CamStatus mStatus;
 	bool mIsSet;
+
+	std::chrono::system_clock::time_point mGrabTimestamp;
 	int mCloseCount;
 	int mCloseLimit;
 

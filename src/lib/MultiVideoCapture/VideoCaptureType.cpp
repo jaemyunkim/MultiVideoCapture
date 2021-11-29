@@ -189,11 +189,26 @@ void VideoCaptureType::release() {
 }
 
 
+bool VideoCaptureType::grab() {
+	bool res = cv::VideoCapture::grab();
+	mGrabTimestamp = std::chrono::system_clock::now();
+
+	return res;
+}
+
+
 bool VideoCaptureType::retrieve(FrameType& frame, int flag) {
 	bool status = cv::VideoCapture::retrieve(frame.mat(), flag);
-	frame.setTimestamp(std::chrono::system_clock::now());
+	frame.setTimestamp(mGrabTimestamp);
 
 	return status;
+}
+
+
+VideoCaptureType& VideoCaptureType::operator >> (FrameType& frame) {
+	read(frame);
+
+	return *this;
 }
 
 
@@ -214,13 +229,6 @@ bool VideoCaptureType::read(FrameType& frame) {
 	}
 
 	return !frame.empty();
-}
-
-
-VideoCaptureType& VideoCaptureType::operator >> (FrameType& frame) {
-	read(frame);
-
-	return *this;
 }
 
 

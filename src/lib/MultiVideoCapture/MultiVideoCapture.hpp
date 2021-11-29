@@ -48,8 +48,10 @@ public:
 	virtual bool isAnyOpened() const;
 	virtual bool isAllOpened() const;
 
-	virtual bool read(std::vector<FrameType>& frames);
+	virtual bool grab();
+	virtual bool retrieve(std::vector<FrameType>& frames, int flag = 0);
 	virtual MultiVideoCapture& operator >> (std::vector<FrameType>& frames);
+	virtual bool read(std::vector<FrameType>& frames);
 
 	virtual bool set(int propId, double value);
 	virtual bool set(int propId, std::vector<double> values);
