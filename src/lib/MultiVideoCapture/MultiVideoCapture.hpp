@@ -51,6 +51,9 @@ public:
 	virtual bool read(std::vector<FrameType>& frames);
 	virtual MultiVideoCapture& operator >> (std::vector<FrameType>& frames);
 
+	virtual bool set(int propId, double value);
+	virtual bool set(int propId, std::vector<double> values);
+	virtual std::vector<double> get(int propId) const;
 	virtual bool set(std::vector<int> cameraIds, cv::Size resolution, float fps = 30.f);
 
 	virtual void verbose(bool verbose = false);

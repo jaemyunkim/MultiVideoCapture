@@ -224,6 +224,24 @@ VideoCaptureType& VideoCaptureType::operator >> (FrameType& frame) {
 }
 
 
+bool VideoCaptureType::set(int propId, double value) {
+	CamStatus lastStatus = mStatus;
+	{
+		std::lock_guard<std::mutex> lock(mMtxStatus);
+		mStatus = CamStatus::CAM_STATUS_SETTING;
+	}
+
+	bool res = cv::VideoCapture::set(propId, value);
+
+	{
+		std::lock_guard<std::mutex> lock(mMtxStatus);
+		mStatus = lastStatus;
+	}
+
+	return res;
+}
+
+
 bool VideoCaptureType::set(cv::Size resolution, float fps) {
 	{
 		std::lock_guard<std::mutex> lock(mMtxStatus);

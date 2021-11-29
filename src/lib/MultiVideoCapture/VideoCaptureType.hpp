@@ -37,6 +37,7 @@ public:
 	virtual bool read(FrameType& frame);
 	virtual VideoCaptureType& operator >> (FrameType& frame);
 
+	virtual bool set(int propId, double value);
 	virtual bool set(cv::Size resolution = { -1, -1 }, float fps = -1.f);
 	virtual double get(int propId) const;
 

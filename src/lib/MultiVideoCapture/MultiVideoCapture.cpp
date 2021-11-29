@@ -240,6 +240,52 @@ MultiVideoCapture& MultiVideoCapture::operator >> (std::vector<FrameType>& frame
 }
 
 
+bool MultiVideoCapture::set(int propId, double value) {
+	return this->set(propId, std::vector<double>(gVidCaps.size(), value));
+}
+
+
+bool MultiVideoCapture::set(int propId, std::vector<double> values) {
+	// get current settings
+	std::vector<double> prevValues(mCameraIds.size());
+	for (size_t i = 0; i < gVidCaps.size(); i++) {
+		prevValues[i] = gVidCaps[i]->get(propId);
+	}
+
+	std::vector<bool> results(mCameraIds.size(), false);
+
+	for (size_t i = 0; i < mCameraIds.size(); i++) {
+		results[i] = gVidCaps[i]->set(propId, values[i]);
+	}
+
+	bool res = false;
+	for (const auto& result : results) {
+		res = res | result;
+	}
+
+	// if setting is failed then restore settings for all devices.
+	if (res == false) {
+		for (size_t i = 0; i < gVidCaps.size(); i++) {
+			if (results[i] == true) {
+				gVidCaps[i]->set(propId, prevValues[i]);
+			}
+		}
+	}
+
+	return res;
+}
+
+
+std::vector<double> MultiVideoCapture::get(int propId) const {
+	std::vector<double> res(gVidCaps.size(), -1);
+	for (size_t i = 0; i < gVidCaps.size(); i++) {
+		res[i] = gVidCaps[i]->get(propId);
+	}
+
+	return res;
+}
+
+
 bool MultiVideoCapture::set(std::vector<int> cameraIds, cv::Size resolution, float fps) {
 	const int nbDevs = (int)cameraIds.size();
 	bool status = true;
