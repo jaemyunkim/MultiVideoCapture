@@ -8,7 +8,7 @@ namespace fs = boost::filesystem;
 
 
 VideoCaptureType::VideoCaptureType() {
-	mStatus = CamStatus::CAM_STATUS_CLOSED;
+	mStatus = VideoStatus::VIDEO_STATUS_CLOSED;
 	mIsSet = false;
 	mResolution = { 640, 480 };
 	mFps = 30.f;
@@ -31,7 +31,7 @@ bool VideoCaptureType::open(const std::string& filename, int apiPreference) {
 
 	// file existance check
 	if (!fs::exists(fName)) {
-		std::string msg = "The file (" + fName.filename().string() + " cannot be opened";
+		std::string msg = "The target (" + fName.filename().string() + " cannot be opened";
 		if (mVerbose) {
 			std::lock_guard<std::mutex> lock(mMtxMsg);
 			std::cout << msg << std::endl;
@@ -40,9 +40,9 @@ bool VideoCaptureType::open(const std::string& filename, int apiPreference) {
 		return false;
 	}
 
-	// check camera status
-	if (mStatus == CamStatus::CAM_STATUS_OPENED) {
-		std::string msg = "The file (" + fName.filename().string() + " cannot be opened";
+	// check video status
+	if (mStatus == VideoStatus::VIDEO_STATUS_OPENED) {
+		std::string msg = "The target (" + fName.filename().string() + " cannot be opened";
 		if (mVerbose) {
 			std::lock_guard<std::mutex> lock(mMtxMsg);
 			std::cout << msg << std::endl;
@@ -50,8 +50,8 @@ bool VideoCaptureType::open(const std::string& filename, int apiPreference) {
 		//throw std::runtime_error(msg);
 		return false;
 	}
-	else if (mStatus == CamStatus::CAM_STATUS_SETTING) {
-		std::string msg = "The file (" + fName.filename().string() + " cannot be opened";
+	else if (mStatus == VideoStatus::VIDEO_STATUS_SETTING) {
+		std::string msg = "The target (" + fName.filename().string() + " cannot be opened";
 		if (mVerbose) {
 			std::lock_guard<std::mutex> lock(mMtxMsg);
 			std::cout << msg << std::endl;
@@ -59,8 +59,8 @@ bool VideoCaptureType::open(const std::string& filename, int apiPreference) {
 		//throw std::runtime_error(msg);
 		return false;
 	}
-	else if (mStatus == CamStatus::CAM_STATUS_OPENING) {
-		std::string msg = "The file (" + fName.filename().string() + " cannot be opened";
+	else if (mStatus == VideoStatus::VIDEO_STATUS_OPENING) {
+		std::string msg = "The target (" + fName.filename().string() + " cannot be opened";
 		if (mVerbose) {
 			std::lock_guard<std::mutex> lock(mMtxMsg);
 			std::cout << msg << std::endl;
@@ -69,24 +69,24 @@ bool VideoCaptureType::open(const std::string& filename, int apiPreference) {
 		return false;
 	}
 
-	// try to open the camera
-	CamStatus prevStatus = mStatus;
+	// try to open the video
+	VideoStatus prevStatus = mStatus;
 	{
 		std::lock_guard<std::mutex> lock(mMtxStatus);
-		mStatus = CamStatus::CAM_STATUS_OPENING;
+		mStatus = VideoStatus::VIDEO_STATUS_OPENING;
 	}
 
-	bool cam_status = false;
+	bool video_status = false;
 	if (apiPreference == -1) {
-		cam_status = cv::VideoCapture::open(fName.string());
+		video_status = cv::VideoCapture::open(fName.string());
 	}
 	else {
-		cam_status = cv::VideoCapture::open(fName.string(), apiPreference);
+		video_status = cv::VideoCapture::open(fName.string(), apiPreference);
 	}
 
-	if (cam_status == true) {
+	if (video_status == true) {
 		std::lock_guard<std::mutex> lock(mMtxStatus);
-		mStatus = CamStatus::CAM_STATUS_OPENED;
+		mStatus = VideoStatus::VIDEO_STATUS_OPENED;
 	}
 	else {
 		{
@@ -102,7 +102,7 @@ bool VideoCaptureType::open(const std::string& filename, int apiPreference) {
 		return false;
 	}
 
-	return cam_status;
+	return video_status;
 }
 
 
@@ -112,8 +112,8 @@ bool VideoCaptureType::open(int index) {
 
 
 bool VideoCaptureType::open(int index, int apiPreference) {
-	// check camera status
-	if (mStatus == CamStatus::CAM_STATUS_OPENED) {
+	// check video status
+	if (mStatus == VideoStatus::VIDEO_STATUS_OPENED) {
 		std::string msg = "camera " + std::to_string(index) + " is already opened";
 		if (mVerbose) {
 			std::lock_guard<std::mutex> lock(mMtxMsg);
@@ -122,7 +122,7 @@ bool VideoCaptureType::open(int index, int apiPreference) {
 		//throw std::runtime_error(msg);
 		return false;
 	}
-	else if (mStatus == CamStatus::CAM_STATUS_SETTING) {
+	else if (mStatus == VideoStatus::VIDEO_STATUS_SETTING) {
 		std::string msg = "camera " + std::to_string(index) + " is already opened and is on setting";
 		if (mVerbose) {
 			std::lock_guard<std::mutex> lock(mMtxMsg);
@@ -131,7 +131,7 @@ bool VideoCaptureType::open(int index, int apiPreference) {
 		//throw std::runtime_error(msg);
 		return false;
 	}
-	else if (mStatus == CamStatus::CAM_STATUS_OPENING) {
+	else if (mStatus == VideoStatus::VIDEO_STATUS_OPENING) {
 		std::string msg = "camera " + std::to_string(index) + " is opening";
 		if (mVerbose) {
 			std::lock_guard<std::mutex> lock(mMtxMsg);
@@ -141,25 +141,25 @@ bool VideoCaptureType::open(int index, int apiPreference) {
 		return false;
 	}
 
-	// try to open the camera
-	CamStatus prevStatus = mStatus;
+	// try to open the video
+	VideoStatus prevStatus = mStatus;
 	{
 		std::lock_guard<std::mutex> lock(mMtxStatus);
-		mStatus = CamStatus::CAM_STATUS_OPENING;
+		mStatus = VideoStatus::VIDEO_STATUS_OPENING;
 	}
-	mCamId = index;
-	bool cam_status = false;
+	mVideoId = index;
+	bool video_status = false;
 	if (apiPreference == -1) {
-		cam_status = cv::VideoCapture::open(index);
+		video_status = cv::VideoCapture::open(index);
 	}
 	else {
-		cam_status = cv::VideoCapture::open(index, apiPreference);
+		video_status = cv::VideoCapture::open(index, apiPreference);
 	}
 
-	if (cam_status == true && cv::VideoCapture::grab() == true) {
+	if (video_status == true && cv::VideoCapture::grab() == true) {
 		{
 			std::lock_guard<std::mutex> lock(mMtxStatus);
-			mStatus = CamStatus::CAM_STATUS_OPENED;
+			mStatus = VideoStatus::VIDEO_STATUS_OPENED;
 		}
 		if (mIsSet)
 			this->set(mResolution, mFps);
@@ -181,19 +181,19 @@ bool VideoCaptureType::open(int index, int apiPreference) {
 		return false;
 	}
 
-	return cam_status;
+	return video_status;
 }
 
 
 bool VideoCaptureType::isOpened() const {
-	if (mStatus == CamStatus::CAM_STATUS_OPENED || mStatus == CamStatus::CAM_STATUS_SETTING)
+	if (mStatus == VideoStatus::VIDEO_STATUS_OPENED)
 		return true;
 	else
 		return false;
 }
 
 
-CamStatus VideoCaptureType::status() const {
+VideoStatus VideoCaptureType::status() const {
 	return mStatus;
 }
 
@@ -202,14 +202,14 @@ void VideoCaptureType::release() {
 	cv::VideoCapture::release();
 	{
 		std::lock_guard<std::mutex> lock(mMtxStatus);
-		mStatus = CamStatus::CAM_STATUS_CLOSED;
+		mStatus = VideoStatus::VIDEO_STATUS_CLOSED;
 	}
 }
 
 
 bool VideoCaptureType::grab() {
 	bool status = false;
-	if (mStatus == CamStatus::CAM_STATUS_OPENED) {
+	if (mStatus == VideoStatus::VIDEO_STATUS_OPENED) {
 		status = cv::VideoCapture::grab();
 		if (status == true) {
 			mGrabTimestamp = std::chrono::system_clock::now();
@@ -222,7 +222,7 @@ bool VideoCaptureType::grab() {
 
 bool VideoCaptureType::retrieve(FrameType& frame, int flag) {
 	bool status = false;
-	if (mStatus == CamStatus::CAM_STATUS_OPENED) {
+	if (mStatus == VideoStatus::VIDEO_STATUS_OPENED) {
 		status = cv::VideoCapture::retrieve(frame.mat(), flag);
 		if (status == true) {
 			frame.setTimestamp(mGrabTimestamp);
@@ -244,10 +244,10 @@ VideoCaptureType& VideoCaptureType::operator >> (FrameType& frame) {
 
 bool VideoCaptureType::read(FrameType& frame) {
 	bool status = cv::VideoCapture::grab();
-	if (status && mStatus == CamStatus::CAM_STATUS_OPENED) {
+	if (status && mStatus == VideoStatus::VIDEO_STATUS_OPENED) {
 		this->retrieve(frame);
 	}
-	else if (mStatus == CamStatus::CAM_STATUS_SETTING) {
+	else if (mStatus == VideoStatus::VIDEO_STATUS_SETTING) {
 		frame.release();
 	}
 	else {
@@ -255,7 +255,7 @@ bool VideoCaptureType::read(FrameType& frame) {
 		//release();
 		{
 			std::lock_guard<std::mutex> lock(mMtxStatus);
-			mStatus = CamStatus::CAM_STATUS_UNKNOWN;
+			mStatus = VideoStatus::VIDEO_STATUS_UNKNOWN;
 		}
 	}
 
@@ -264,10 +264,10 @@ bool VideoCaptureType::read(FrameType& frame) {
 
 
 bool VideoCaptureType::set(int propId, double value) {
-	CamStatus lastStatus = mStatus;
+	VideoStatus lastStatus = mStatus;
 	{
 		std::lock_guard<std::mutex> lock(mMtxStatus);
-		mStatus = CamStatus::CAM_STATUS_SETTING;
+		mStatus = VideoStatus::VIDEO_STATUS_SETTING;
 	}
 
 	bool res = cv::VideoCapture::set(propId, value);
@@ -282,10 +282,10 @@ bool VideoCaptureType::set(int propId, double value) {
 
 
 bool VideoCaptureType::set(cv::Size resolution, float fps) {
-	CamStatus prevStatus = mStatus;
+	VideoStatus prevStatus = mStatus;
 	{
 		std::lock_guard<std::mutex> lock(mMtxStatus);
-		mStatus = CamStatus::CAM_STATUS_SETTING;
+		mStatus = VideoStatus::VIDEO_STATUS_SETTING;
 	}
 	mIsSet = true;
 

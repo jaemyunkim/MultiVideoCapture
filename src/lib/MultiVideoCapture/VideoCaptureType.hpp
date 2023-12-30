@@ -12,12 +12,12 @@
 #include "FrameType.hpp"
 
 
-enum class CamStatus {
-	CAM_STATUS_CLOSED = 0,
-	CAM_STATUS_OPENING,
-	CAM_STATUS_OPENED,
-	CAM_STATUS_SETTING,
-	CAM_STATUS_UNKNOWN,
+enum class VideoStatus {
+	VIDEO_STATUS_CLOSED = 0,
+	VIDEO_STATUS_OPENING,
+	VIDEO_STATUS_OPENED,
+	VIDEO_STATUS_SETTING,
+	VIDEO_STATUS_UNKNOWN,
 };
 
 
@@ -31,7 +31,7 @@ public:
 	virtual bool open(int index);
 	virtual bool open(int index, int apiPreference);
 	virtual bool isOpened() const;
-	virtual CamStatus status() const;
+	virtual VideoStatus status() const;
 
 	virtual void release();
 
@@ -47,8 +47,8 @@ public:
 	virtual void verbose(bool verbose = false);
 
 protected:
-	int mCamId;
-	CamStatus mStatus;
+	int mVideoId;
+	VideoStatus mStatus;
 	bool mIsSet;
 
 	std::chrono::system_clock::time_point mGrabTimestamp;

@@ -23,7 +23,7 @@ set_source_files_properties(${PROJ_FILES}
 add_library(${PROJ_NAME} SHARED #dynamic linking library (.so, .dll)
    ${PROJ_FILES}
 )
-target_compile_definitions(${PROJ_NAME} PRIVATE -DDLL_EXPORTS)  # add preprocessors. DLL_EXPORTS is for dll exporting.
+target_compile_definitions(${PROJ_NAME} PUBLIC DLL_EXPORTS)  # add preprocessors. DLL_EXPORTS is for dll exporting.
 target_link_libraries(${PROJ_NAME}
     debug ${PROJ_LIBS_DEBUG}
     optimized ${PROJ_LIBS_RELEASE}

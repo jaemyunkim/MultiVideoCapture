@@ -30,27 +30,29 @@
 #include "opencv2/opencv.hpp"
 
 
+#ifndef _DEBUG
 FRAMETYPE_TEMPLATE template class FRAMETYPE_EXPORTS std::chrono::duration<std::chrono::system_clock::rep, std::chrono::system_clock::period>;
 FRAMETYPE_TEMPLATE template class FRAMETYPE_EXPORTS std::chrono::time_point<std::chrono::system_clock, std::chrono::system_clock::duration>;
+#endif // !_DEBUG
 
 
-class FRAMETYPE_EXPORTS FrameType {
+class FrameType {
 public:
-	FrameType();
-	virtual ~FrameType();
-
-	virtual FrameType clone() const;
-	virtual void copyTo(FrameType& obj);
-	virtual bool empty() const;
-
-	virtual bool setFrame(const cv::Mat& frame);
-	virtual bool setFrame(const cv::Mat& frame, std::chrono::system_clock::time_point timestamp);
-	virtual void setTimestamp(std::chrono::system_clock::time_point timestamp);
-	virtual cv::Mat frame() const;
-	virtual cv::Mat& mat();
-	virtual std::chrono::system_clock::time_point timestamp() const;
-
-	virtual void release();
+	FRAMETYPE_EXPORTS FrameType();
+	FRAMETYPE_EXPORTS virtual ~FrameType();
+	
+	FRAMETYPE_EXPORTS virtual FrameType clone() const;
+	FRAMETYPE_EXPORTS virtual void copyTo(FrameType& obj);
+	FRAMETYPE_EXPORTS virtual bool empty() const;
+	
+	FRAMETYPE_EXPORTS virtual bool setFrame(const cv::Mat& frame);
+	FRAMETYPE_EXPORTS virtual bool setFrame(const cv::Mat& frame, std::chrono::system_clock::time_point timestamp);
+	FRAMETYPE_EXPORTS virtual void setTimestamp(std::chrono::system_clock::time_point timestamp);
+	FRAMETYPE_EXPORTS virtual cv::Mat frame() const;
+	FRAMETYPE_EXPORTS virtual cv::Mat& mat();
+	FRAMETYPE_EXPORTS virtual std::chrono::system_clock::time_point timestamp() const;
+	
+	FRAMETYPE_EXPORTS virtual void release();
 
 protected:
 	cv::Mat mFrame;
